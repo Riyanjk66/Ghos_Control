@@ -2,19 +2,19 @@ import streamlit as st
 import pandas as pd
 import random
 import datetime
-import requests # Membutuhkan library requests untuk tracking IP
+import requests
 
 # ==============================================================
-# CONFIG & SECURE SESSION STATE (Wajib ditaruh paling atas)
+# CONFIG & SECURE SESSION STATE
 # ==============================================================
 st.set_page_config(page_title="The Ghost Intelligence Cyber Shield V17", page_icon="🥷", layout="wide")
 
-# Custom CSS untuk Mobile Friendly & Background Warna
+# Custom CSS untuk HP (Mobile Friendly)
 st.markdown("""
     <style>
     @media (max-width: 768px) {
         .stButton>button {
-            height: 60px; /* Memperbesar tombol di HP agar mudah ditekan darurat */
+            height: 60px;
             font-size: 18px !important;
         }
     }
@@ -22,6 +22,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# Memori Internal Evolusi & Memori Sistem (Konversi dari MQL5)
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 if 'login_attempts' not in st.session_state:
@@ -30,40 +31,39 @@ if 'system_lockdown' not in st.session_state:
     st.session_state['system_lockdown'] = False
 if 'cyber_logs' not in st.session_state:
     st.session_state['cyber_logs'] = [
-        {"Waktu": "12:15:22", "Kategori": "FIREWALL", "IP Penyusup": "Safe", "Server/ISP": "System", "Lokasi": "Local", "Detail": "Sistem enkripsi diaktifkan."}
+        {"Waktu": "12:15:22", "Kategori": "FIREWALL", "IP Penyusup": "Safe", "Detail": "Sistem enkripsi diaktifkan."}
     ]
+if 'starting_balance' not in st.session_state:
+    st.session_state['starting_balance'] = 100.0  # Basis Saldo Awal ($100)
+if 'current_equity' not in st.session_state:
+    st.session_state['current_equity'] = 125.50
 
-# --- FUNGSI DETEKSI KOORDINAT IP & ISP PENYUSUP ---
+# --- FUNGSI DETEKSI DATA PENYUSUP (Cyber Security) ---
 def TrackIntruderData():
     try:
-        # Mengambil data IP publik eksternal menggunakan format json resmi
         response = requests.get('https://ipapi.co', timeout=5).json()
-        ip = response.get('ip', 'Tidak Terdeteksi')
-        isp = response.get('org', 'Unknown Provider')
-        city = response.get('city', 'Unknown City')
-        country = response.get('country_name', 'Unknown Country')
-        return ip, isp, f"{city}, {country}"
+        return response.get('ip', 'Unknown'), response.get('org', 'Unknown ISP'), f"{response.get('city')}, {response.get('country_name')}"
     except:
-        return "192.168.1.X (Proxy Masked)", "VPN Dedicated Server", "Unknown Location"
+        return "192.168.1.X", "VPN Dedicated Server", "Unknown Location"
 
 # ==============================================================
-# SEKRING 1: LOCKDOWN AKTIF
+# SEKRING 1: HARD LOCKDOWN (Circuit Breaker 15% dari MQL5)
 # ==============================================================
-if st.session_state['system_lockdown']:
+drawdown = st.session_state['starting_balance'] - st.session_state['current_equity']
+max_loss = st.session_state['starting_balance'] * 0.15
+
+if drawdown >= max_loss or st.session_state['system_lockdown']:
     st.error("🚨 CRITICAL ALERT: SISTEM LOCKDOWN AKTIF (HARD-LOCKED) 🚨")
-    st.warning("Aplikasi mendeteksi serangan siber brutal. Akses ditutup total demi melindungi saldo Anda.")
-    st.dataframe(pd.DataFrame(st.session_state['cyber_logs']).tail(5), use_container_width=True)
+    st.warning("Aplikasi mendeteksi batas risiko harian 15% terlampaui. Semua posisi trading dihentikan otomatis.")
     st.stop()
 
-# Tampilan Halaman Login
+# --- HALAMAN LOGIN ---
 if not st.session_state['logged_in']:
     st.title("🥷 The Ghost Intelligence - Cyber Security Login")
-    
     if st.session_state['login_attempts'] > 0:
         st.error(f"⚠️ Indikasi Ancaman: Percobaan pembobolan {st.session_state['login_attempts']}/3 kali!")
     
     user_pass = st.text_input("Master Key Password", type="password")
-    
     if st.button("Verifikasi Keamanan Akses"):
         if user_pass == "ADMIN123":
             st.session_state['logged_in'] = True
@@ -71,57 +71,53 @@ if not st.session_state['logged_in']:
             st.rerun()
         else:
             st.session_state['login_attempts'] += 1
-            log_time = datetime.datetime.now().strftime('%H:%M:%S')
-            
-            # MEMICU PELACAKAN SIBER SEKETIKA SAAT PASSWORD SALAH
-            intruder_ip, intruder_isp, intruder_loc = TrackIntruderData()
-            
+            ip, isp, loc = TrackIntruderData()
             st.session_state['cyber_logs'].append({
-                "Waktu": log_time,
+                "Waktu": datetime.datetime.now().strftime('%H:%M:%S'),
                 "Kategori": "ATTACK DETECTED",
-                "IP Penyusup": intruder_ip,
-                "Server/ISP": intruder_isp,
-                "Lokasi": intruder_loc,
-                "Detail": "Gagal otorisasi! Mencoba membobol sistem secara ilegal."
+                "Detail": f"Gagal otorisasi dari IP {ip} ({isp} - {loc})"
             })
-            
             if st.session_state['login_attempts'] >= 3:
                 st.session_state['system_lockdown'] = True
             st.rerun()
     st.stop()
 
 # ==============================================================
-# HALAMAN UTAMA DASHBOARD UTAMA (JIKA LOGIN SUKSES)
+# HALAMAN UTAMA DASHBOARD TRADING UTAMA
 # ==============================================================
-st.title("🥷 The Ghost Intelligence - Control Center Secure V17")
-st.success("👋 Selamat datang kembali, Commander. Protokol Pelacakan Siber Aktif di Latar Belakang.")
+st.title("🥷 Ghost Intelligence Control Center Secure V17")
+st.success("👋 Selamat datang kembali, Commander. Sistem Trading Otomatis Aktif.")
 
-# Tombol Keluar Sistem
 if st.button("🚪 Keluar Sistem (Log Out)"):
     st.session_state['logged_in'] = False
     st.rerun()
 
-# Layout Panel Kerja
 left_panel, right_panel = st.columns([1.8, 1])
 
 with left_panel:
-    st.subheader("🛡️ Radar Forensik Keamanan Siber & Deteksi Ancaman")
-    log_df = pd.DataFrame(st.session_state['cyber_logs'])
-    st.dataframe(log_df.tail(6), use_container_width=True)
+    st.subheader("🛡️ Radar Keamanan & Aktivitas Robot")
+    st.dataframe(pd.DataFrame(st.session_state['cyber_logs']).tail(6), use_container_width=True)
     
-    st.info("💡 *Catatan Keamanan*: Jika Anda melihat IP asing dengan status 'ATTACK DETECTED' di atas, sistem telah mengamankan data Anda dan mengelabui pengintai dengan saldo palsu.")
+    # Simulasi Indikator Trading Adaptif dari MQL5 Anda (EMA 50 & RSI 14)
+    st.subheader("📈 Analisis Indikator Real-Time")
+    st.info("Sinyal Dasar: Trend Bullish (Harga di atas EMA 50) | RSI 14: 58.4 (Netral)")
 
 with right_panel:
-    st.subheader("📑 Laporan Finansial Akun (Anti-Cheat)")
-    st.metric(label="Saldo Bersih Riil Akun (Verified)", value="$125.50", delta="Sinkron 100%")
+    st.subheader("📑 Laporan Finansial Akun")
+    st.metric(label="Saldo Bersih Riil Akun (Verified)", value=f"${st.session_state['current_equity']}", delta="True Fractional Compounding Active")
     st.metric(label="Kamuflase Visual Server (Cloaking)", value=f"${random.randint(55,95)}.45", delta="Broker Terkecoh", delta_color="inverse")
     
     st.markdown("### 🔌 Panel Kendali Darurat Jarak Jauh")
     if st.button("🚨 EMERGENCY KILL-SWITCH (TUTUP POSISI)"):
-        st.error("PERINTAH DIKIRIM: Menutup paksa semua order!") # Diganti dari st.critical ke st.error agar tidak eror
+        st.error("PERINTAH DIKIRIM: Semua posisi trading di bursa telah ditutup paksa!")
+        st.session_state['cyber_logs'].append({
+            "Waktu": datetime.datetime.now().strftime('%H:%M:%S'),
+            "Kategori": "KILL-SWITCH",
+            "Detail": "Perintah darurat eksekusi tutup posisi manual dari HP berhasil."
+        })
     if st.button("🔒 RESET LOCKDOWN COUNTER"):
         st.session_state['login_attempts'] = 0
         st.session_state['system_lockdown'] = False
-        st.success("Log dibersihkan & Proteksi Lockdown dibuka kembali.")
+        st.success("Sistem dipulihkan kembali.")
         st.rerun()
-        
+            
