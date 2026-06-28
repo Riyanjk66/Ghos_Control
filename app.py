@@ -1,3 +1,15 @@
+import streamlit as st
+import pandas as pd
+import random
+import datetime
+import requests # Membutuhkan library requests untuk tracking IP
+
+# ==============================================================
+# CONFIG & SECURE SESSION STATE (Wajib ditaruh paling atas)
+# ==============================================================
+st.set_page_config(page_title="The Ghost Intelligence Cyber Shield V17", page_icon="🥷", layout="wide")
+
+# Custom CSS untuk Mobile Friendly & Background Warna
 st.markdown("""
     <style>
     @media (max-width: 768px) {
@@ -6,19 +18,9 @@ st.markdown("""
             font-size: 18px !important;
         }
     }
+    .main { background-color: #0E1117; color: #FFFFFF; }
     </style>
     """, unsafe_allow_html=True)
-
-import streamlit as st
-import pandas as pd
-import random
-import datetime
-import requests # Membutuhkan library requests untuk tracking IP
-
-# ==============================================================
-# CONFIG & SECURE SESSION STATE
-# ==============================================================
-st.set_page_config(page_title="The Ghost Intelligence Cyber Shield V17", page_icon="🥷", layout="wide")
 
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
@@ -31,13 +33,10 @@ if 'cyber_logs' not in st.session_state:
         {"Waktu": "12:15:22", "Kategori": "FIREWALL", "IP Penyusup": "Safe", "Server/ISP": "System", "Lokasi": "Local", "Detail": "Sistem enkripsi diaktifkan."}
     ]
 
-# Custom CSS
-st.markdown("<style>.main { background-color: #0E1117; color: #FFFFFF; }</style>", unsafe_allow_html=True)
-
 # --- FUNGSI DETEKSI KOORDINAT IP & ISP PENYUSUP ---
 def TrackIntruderData():
     try:
-        # Mengambil data IP publik eksternal yang menembak aplikasi lewat API pihak ketiga yang aman
+        # Mengambil data IP publik eksternal menggunakan format json resmi
         response = requests.get('https://ipapi.co', timeout=5).json()
         ip = response.get('ip', 'Tidak Terdeteksi')
         isp = response.get('org', 'Unknown Provider')
@@ -97,12 +96,16 @@ if not st.session_state['logged_in']:
 st.title("🥷 The Ghost Intelligence - Control Center Secure V17")
 st.success("👋 Selamat datang kembali, Commander. Protokol Pelacakan Siber Aktif di Latar Belakang.")
 
+# Tombol Keluar Sistem
+if st.button("🚪 Keluar Sistem (Log Out)"):
+    st.session_state['logged_in'] = False
+    st.rerun()
+
 # Layout Panel Kerja
 left_panel, right_panel = st.columns([1.8, 1])
 
 with left_panel:
     st.subheader("🛡️ Radar Forensik Keamanan Siber & Deteksi Ancaman")
-    # Menampilkan tabel lengkap hasil lacakan IP dan ISP Penyusup
     log_df = pd.DataFrame(st.session_state['cyber_logs'])
     st.dataframe(log_df.tail(6), use_container_width=True)
     
@@ -115,7 +118,10 @@ with right_panel:
     
     st.markdown("### 🔌 Panel Kendali Darurat Jarak Jauh")
     if st.button("🚨 EMERGENCY KILL-SWITCH (TUTUP POSISI)"):
-        st.critical("PERINTAH DIKIRIM: Menutup paksa semua order!")
+        st.error("PERINTAH DIKIRIM: Menutup paksa semua order!") # Diganti dari st.critical ke st.error agar tidak eror
     if st.button("🔒 RESET LOCKDOWN COUNTER"):
         st.session_state['login_attempts'] = 0
-        st.success("Log dibersihkan.")
+        st.session_state['system_lockdown'] = False
+        st.success("Log dibersihkan & Proteksi Lockdown dibuka kembali.")
+        st.rerun()
+        
